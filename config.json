@@ -1,0 +1,6 @@
+{
+  "cache":{
+    "eviction": "lru",
+    "shardNum": 256
+  }
+}
