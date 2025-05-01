@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package rpc;
+option go_package=".";
+
+service CacheService {
+  rpc GetRpc (GetRequest) returns (GetResponse) {}
+}
+
+message GetRequest {
+  string group = 1;
+  string key = 2;
+}
+
+message GetResponse {
+  bytes value = 1;
+  bool found = 2;
+}

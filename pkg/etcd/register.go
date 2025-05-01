@@ -5,13 +5,12 @@ import (
 	"fmt"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"log"
-	"time"
 )
 
-const prefix = "/service/GGCache"
+const Prefix = "/service/GGCache"
 
 func RegisterSelfAddr(key, selfAddr string) {
-	k := fmt.Sprintf("%s/%s", prefix, key)
+	k := fmt.Sprintf("%s/%s", Prefix, key)
 	c := EtcdClient()
 	grant, err := c.Grant(context.Background(), 3)
 	if err != nil {
@@ -21,11 +20,10 @@ func RegisterSelfAddr(key, selfAddr string) {
 	if err != nil {
 		panic(err)
 	}
-	go KeepAlive(grant.ID)
-	time.Sleep(1 * time.Hour)
+	go keepAlive(grant.ID)
 }
 
-func KeepAlive(id clientv3.LeaseID) {
+func keepAlive(id clientv3.LeaseID) {
 	ch, err := client.KeepAlive(context.Background(), id)
 	if err != nil {
 		panic(err)
