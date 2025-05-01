@@ -1,23 +1,34 @@
 package server
 
 import (
+	"GGCache/configs"
+	"GGCache/internal/cache/eviction"
+	"GGCache/internal/client"
+	"GGCache/internal/consistent"
 	"GGCache/internal/group"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 )
 
-type HTTPServer struct {
-	selfAddr string
+type HTTPPool struct {
+	selfAddr   string
+	mu         sync.Mutex
+	consistent *consistent.Consistent
+	nodes      map[string]*client.Client
 }
 
-func NewHTTPServer(addr string) *HTTPServer {
-	return &HTTPServer{
-		selfAddr: addr,
+func NewHTTPPool(addr string) *HTTPPool {
+	return &HTTPPool{
+		selfAddr:   addr,
+		mu:         sync.Mutex{},
+		consistent: consistent.NewConsistent(configs.GetConfig().CacheConfig.Replicas, nil),
+		nodes:      make(map[string]*client.Client),
 	}
 }
 
-func (s *HTTPServer) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (s *HTTPPool) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	//http://127.0.0.1/group/key
 	params := strings.Split(req.URL.Path, "/")
 	params = params[1:]
@@ -26,17 +37,43 @@ func (s *HTTPServer) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		http.Error(resp, "bad request", http.StatusBadRequest)
 		return
 	}
-	g := group.GetGroup(params[0])
-	if g == nil {
-		http.Error(resp, "no such group", http.StatusNotFound)
-		return
-	}
-	key := params[1]
-	if v, ok := g.Get(key); ok {
+	if v, err := s.Get(params[0], params[1]); err == nil {
 		resp.Header().Set("Content-Type", "application/octet-stream")
 		_, _ = resp.Write(v.ByteSlice())
 		return
 	} else {
-		http.Error(resp, "key not find by cache and local", http.StatusInternalServerError)
+		http.Error(resp, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *HTTPPool) RegisterNode(addr string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.consistent.AddNode(addr)
+	s.nodes[addr] = client.NewClient(addr)
+}
+
+func (s *HTTPPool) Get(groupName, key string) (eviction.ByteView, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if addr := s.consistent.ChooseNode(key); addr == s.selfAddr { //本地找
+		g := group.GetGroup(groupName)
+		if g == nil {
+			return eviction.ByteView{}, fmt.Errorf("no such group")
+		}
+		if v, ok := g.Get(key); ok {
+			return v, nil
+		} else {
+			return eviction.ByteView{}, fmt.Errorf("[Local]key not find by cache and local")
+		}
+	} else { //远程节点找
+		c := s.nodes[addr]
+		if v, ok := c.Get(groupName, key); ok {
+			fmt.Println("get from", addr)
+			return v, nil
+		} else {
+			return eviction.ByteView{}, fmt.Errorf("[Peer]key not find by cache and local")
+		}
 	}
 }

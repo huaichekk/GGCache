@@ -3,8 +3,10 @@ package main
 import (
 	"GGCache/internal/group"
 	"GGCache/internal/server"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
 
 var db = map[string]string{
@@ -21,6 +23,13 @@ func main() {
 		}
 		return nil, false
 	})
-	s := server.NewHTTPServer("127.0.0.1:6666")
-	log.Println(http.ListenAndServe(":8888", s))
+	selfAddr := os.Args[1]
+	fmt.Println("selfAddr:", selfAddr)
+	s := server.NewHTTPPool(selfAddr)
+	s.RegisterNode(selfAddr)
+	s.RegisterNode(os.Args[2])
+	s.RegisterNode(os.Args[3])
+
+	log.Println("server listen at ", selfAddr)
+	log.Println(http.ListenAndServe(selfAddr, s))
 }

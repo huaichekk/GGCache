@@ -2,6 +2,7 @@ package consistent
 
 import (
 	"fmt"
+	"hash/crc32"
 	"sort"
 	"strconv"
 )
@@ -16,11 +17,15 @@ type Consistent struct {
 }
 
 func NewConsistent(replicas int, hash Hash) *Consistent {
+	var h Hash
+	if hash == nil {
+		h = crc32.ChecksumIEEE
+	}
 	return &Consistent{
 		ring:          make([]int, 0),
 		replicas:      replicas,
 		virtualToNode: make(map[int]string),
-		hash:          hash,
+		hash:          h,
 	}
 }
 

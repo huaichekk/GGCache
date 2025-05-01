@@ -21,6 +21,7 @@ type Config struct {
 type CacheConfig struct {
 	Eviction string `json:"eviction"`
 	ShardNum int    `json:"shardNum"`
+	Replicas int    `json:"replicas"`
 }
 
 func LoadConfig() *Config {
@@ -30,7 +31,6 @@ func LoadConfig() *Config {
 	}
 
 	paths := []string{
-		"/etc/fobrain/conf/config.json",
 		"./config.json",
 		"../config.json",
 		"../../config.json",
@@ -58,6 +58,7 @@ func LoadConfig() *Config {
 	if err := json.Unmarshal(jsondata, &res); err != nil {
 		panic(err)
 	}
+	fmt.Println(res)
 	return &res
 }
 func GetConfig() *Config {
