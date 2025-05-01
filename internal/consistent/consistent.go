@@ -30,6 +30,11 @@ func NewConsistent(replicas int, hash Hash) *Consistent {
 }
 
 func (c *Consistent) AddNode(addr string) {
+	for _, v := range c.addrs {
+		if v == addr {
+			return
+		}
+	}
 	for i := 0; i < c.replicas; i++ {
 		virtualNode := int(c.hash([]byte(strconv.Itoa(i) + addr)))
 		c.ring = append(c.ring, virtualNode)
@@ -41,6 +46,18 @@ func (c *Consistent) AddNode(addr string) {
 }
 
 func (c *Consistent) DeleteNode(addr string) {
+	if addr == "" {
+		return
+	}
+	var has bool = false
+	for _, v := range c.addrs {
+		if v == addr {
+			has = true
+		}
+	}
+	if has == false {
+		return
+	}
 	for i := 0; i < c.replicas; i++ {
 		virtualNode := int(c.hash([]byte(strconv.Itoa(i) + addr)))
 		index := sort.SearchInts(c.ring, virtualNode)

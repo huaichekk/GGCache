@@ -77,3 +77,9 @@ func (s *HTTPPool) Get(groupName, key string) (eviction.ByteView, error) {
 		}
 	}
 }
+func (s *HTTPPool) DeleteNode(addr string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.consistent.DeleteNode(addr)
+	delete(s.nodes, addr)
+}

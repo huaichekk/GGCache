@@ -3,5 +3,8 @@
     "eviction": "lru",
     "shardNum": 256,
     "replicas": 3
+  },
+  "etcd": {
+    "addr": ["127.0.0.1:2379"]
   }
 }

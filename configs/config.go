@@ -16,12 +16,16 @@ var (
 
 type Config struct {
 	CacheConfig CacheConfig `json:"cache"`
+	EtcdConfig  EtcdConfig  `json:"etcd"`
 }
 
 type CacheConfig struct {
 	Eviction string `json:"eviction"`
 	ShardNum int    `json:"shardNum"`
 	Replicas int    `json:"replicas"`
+}
+type EtcdConfig struct {
+	Addr []string `json:"addr"`
 }
 
 func LoadConfig() *Config {
