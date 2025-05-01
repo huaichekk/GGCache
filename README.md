@@ -6,6 +6,22 @@
 1. 新建一个Group,一个Group代表一类数据，并传入回调函数，回调函数一般为从数据库中获取，一般在缓存中无数据时，调用回调函数，查找数据。
 2. 新建一个HTTPPool，并启动，需要传入需要向外界暴露服务的地址，节点之间使用rpc通信，本地暴露rpc服务的地址在GGCache/config.json中读取.
 
+
+```go 使用示例
+func main() {
+	_ = group.NewGroup("scores", 2<<10, func(key string) ([]byte, bool) {
+		log.Println("[SlowDB] search key", key)
+		if v, ok := db[key]; ok {
+			return []byte(v), true
+		}
+		return nil, false
+	})
+	s := server.NewHTTPPool(os.Args[1])
+	s.Start()
+}
+```
+
+
 # 节点初始化流程
 1. 注册本地的rpc服务，每个节点即充当rpc的服务端，向外界暴露读取缓存的服务，也作为客户端，在使用一致性哈希算法匹配到非本地节点时，调用对应节点的rpc服务
 2. 将自己的的rpc地址存入etcd中
