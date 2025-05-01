@@ -17,6 +17,7 @@ var (
 type Config struct {
 	CacheConfig CacheConfig `json:"cache"`
 	EtcdConfig  EtcdConfig  `json:"etcd"`
+	RpcConfig   RpcConfig   `json:"rpc"`
 }
 
 type CacheConfig struct {
@@ -26,6 +27,10 @@ type CacheConfig struct {
 }
 type EtcdConfig struct {
 	Addr []string `json:"addr"`
+}
+
+type RpcConfig struct {
+	Addr string
 }
 
 func LoadConfig() *Config {

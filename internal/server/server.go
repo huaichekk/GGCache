@@ -20,11 +20,10 @@ import (
 	"time"
 )
 
-const HTTPADDR = "127.0.0.1:9999"
-
 type HTTPPool struct {
 	pb.UnimplementedCacheServiceServer // 必须内嵌
-	selfAddr                           string
+	httpAddr                           string
+	rpcAddr                            string
 	mu                                 sync.Mutex
 	consistent                         *consistent.Consistent
 	nodes                              map[string]*rpcclient.GRPCClient
@@ -32,10 +31,11 @@ type HTTPPool struct {
 
 func NewHTTPPool(addr string) *HTTPPool {
 	return &HTTPPool{
-		selfAddr:   addr,
+		httpAddr:   addr,
 		mu:         sync.Mutex{},
 		consistent: consistent.NewConsistent(configs.GetConfig().CacheConfig.Replicas, nil),
 		nodes:      make(map[string]*rpcclient.GRPCClient),
+		rpcAddr:    configs.GetConfig().RpcConfig.Addr,
 	}
 }
 
@@ -63,7 +63,7 @@ func (s *HTTPPool) RegisterNode(addr string) {
 	defer s.mu.Unlock()
 	s.consistent.AddNode(addr)
 	var err error
-	if addr == s.selfAddr {
+	if addr == s.rpcAddr {
 		return
 	}
 	s.nodes[addr], err = rpcclient.NewClient(addr, 5*time.Second)
@@ -75,7 +75,7 @@ func (s *HTTPPool) RegisterNode(addr string) {
 func (s *HTTPPool) Get(groupName, key string) (eviction.ByteView, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if addr := s.consistent.ChooseNode(key); addr == s.selfAddr { //本地找
+	if addr := s.consistent.ChooseNode(key); addr == s.rpcAddr { //本地找
 		g := group.GetGroup(groupName)
 		if g == nil {
 			return eviction.ByteView{}, fmt.Errorf("no such group")
@@ -108,19 +108,19 @@ func (s *HTTPPool) Start() {
 	grpcServer := grpc.NewServer()
 
 	pb.RegisterCacheServiceServer(grpcServer, s)
-	lis, err := net.Listen("tcp", s.selfAddr)
+	lis, err := net.Listen("tcp", s.rpcAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	go func() {
-		log.Println("gRPC 服务已启动，监听 :", s.selfAddr)
+		log.Println("gRPC 服务已启动，监听 :", s.rpcAddr)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatal(err)
 		}
 	}()
 	//将自己的地址存入ETCD
-	etcd.RegisterSelfAddr(s.selfAddr, s.selfAddr)
+	etcd.RegisterSelfAddr(s.rpcAddr, s.rpcAddr)
 	addrs, version := etcd.DisCover()
 	for _, addr := range addrs {
 		s.RegisterNode(addr)
@@ -128,9 +128,9 @@ func (s *HTTPPool) Start() {
 	fmt.Println(addrs)
 	//动态监听ETCD中的结点变化HTTP服务
 	go s.WatchFromVersion(version)
-	fmt.Println("http server listen at", HTTPADDR)
+	fmt.Println("http server listen at", s.httpAddr)
 	//启动对客户端提供服务的HTTPf
-	log.Fatalln(http.ListenAndServe(HTTPADDR, s))
+	log.Fatalln(http.ListenAndServe(s.httpAddr, s))
 }
 
 func (s *HTTPPool) WatchFromVersion(version int64) {
