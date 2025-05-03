@@ -4,7 +4,7 @@
 - 使用分布式节点将缓存分布在多个节点的内存中，横向扩展缓存的容量
 
 ## 架构图
-![img.png](images/img.png)
+![img.png](img.png)
 
 ## 安装方式
 ```shell
@@ -42,7 +42,7 @@ func main() {
 
 ## 读操作流程
 示例URL:http://example.com/GroupName/key
-![img_1.png](images/img_1.png)
+![img_1.png](img_1.png)
 1. HTTPPoll使用内部的consistent一致性哈希选择改key对应的节点
 2. 若节点时本地ip地址时，直接读取本地缓存，若本地缓存中该key，则从回调函数中获取
 3. 若匹配到的时远程节点，则调用改节点的rpc服务
