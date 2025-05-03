@@ -13,13 +13,14 @@ type SafeCache struct {
 	cache      []eviction.Cache
 }
 
-func NewSafeCache(cap int) *SafeCache {
+func NewSafeCache(cap, minTTL, maxTTL int) *SafeCache {
 	shardMutex := make([]*sync.RWMutex, configs.GetConfig().CacheConfig.ShardNum)
 	cacheSlice := make([]eviction.Cache, configs.GetConfig().CacheConfig.ShardNum)
 	for i := 0; i < configs.GetConfig().CacheConfig.ShardNum; i++ {
 		shardMutex[i] = &sync.RWMutex{}
 		cacheSlice[i] = eviction.GetCacheByEviction(configs.GetConfig().CacheConfig.Eviction,
-			cap)
+			cap, minTTL, maxTTL)
+		cacheSlice[i].ScheduleDelete(shardMutex[i])
 	}
 	return &SafeCache{
 		shardMutex: shardMutex,

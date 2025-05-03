@@ -22,13 +22,13 @@ type Group struct {
 	single     singleflight.Singleflight
 }
 
-func NewGroup(name string, cap int, getterFunc GetterFunc) *Group {
+func NewGroup(name string, cap, minTTL, maxTTL int, getterFunc GetterFunc) *Group {
 	if getterFunc == nil {
 		panic("Group 回调函数为空")
 	}
 	g := &Group{
 		name:       name,
-		mainCache:  cache.NewSafeCache(cap),
+		mainCache:  cache.NewSafeCache(cap, minTTL, maxTTL),
 		getterFunc: getterFunc,
 		single:     singleflight.Singleflight{},
 	}

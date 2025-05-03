@@ -23,7 +23,7 @@ func TestLRUCache_Get(t *testing.T) {
 	for k, v := range m {
 		capacity += len(k) + v.Len()
 	}
-	lru := NewLRUCache(capacity)
+	lru := NewLRUCache(capacity, 10, 20)
 	lru.Put("k1", m["k1"])
 	lru.Put("k2", m["k2"])
 	lru.Put("k3", m["k3"])

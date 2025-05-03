@@ -31,13 +31,14 @@ var db = map[string]string{
 }
 
 func main() {
-	_ = group.NewGroup("scores", 2<<10, func(key string) ([]byte, bool) {
-		log.Println("[SlowDB] search key", key)
-		if v, ok := db[key]; ok {
-			return []byte(v), true
-		}
-		return nil, false
-	})
+	_ = group.NewGroup("scores", 2<<10, 10, 20,
+		func(key string) ([]byte, bool) {
+			log.Println("[SlowDB] search key", key)
+			if v, ok := db[key]; ok {
+				return []byte(v), true
+			}
+			return nil, false
+		})
 	s := server.NewHTTPPool(os.Args[1])
 	s.Start()
 }
