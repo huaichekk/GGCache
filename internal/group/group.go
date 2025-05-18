@@ -53,6 +53,10 @@ func (g *Group) Get(key string) (eviction.ByteView, bool) {
 		return eviction.ByteView{}, false
 	}
 	if v, ok := g.mainCache.Get(key); ok {
+		if v.Empty() {
+			fmt.Println("[GGCache] empty cache for 缓存穿透")
+			return eviction.ByteView{}, false
+		}
 		fmt.Println("[GGCache] cache hit key:", key)
 		return v, true
 	} else {
@@ -70,6 +74,7 @@ func (g *Group) GetFromLocal(key string) (eviction.ByteView, bool) {
 			g.mainCache.Put(key, eviction.ByteView{B: b})
 			return eviction.ByteView{B: b}, true
 		} else {
+			g.mainCache.Put(key, eviction.ByteView{B: []byte{}})
 			return eviction.ByteView{}, false
 		}
 	}); ok {

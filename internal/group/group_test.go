@@ -15,7 +15,7 @@ var db = map[string]string{
 
 func TestGet(t *testing.T) {
 	loadCounts := make(map[string]int, len(db))
-	gee := NewGroup("scores", 2<<10, GetterFunc(
+	gee := NewGroup("scores", 2<<10, 100, 50, GetterFunc(
 		func(key string) ([]byte, bool) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := db[key]; ok {
@@ -44,7 +44,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestSingleFly(t *testing.T) {
-	g := NewGroup("scores", 2<<10, GetterFunc(
+	g := NewGroup("scores", 2<<10, 50, 100, GetterFunc(
 		func(key string) ([]byte, bool) {
 			log.Println("[SlowDB] search key", key)
 			time.Sleep(100 * time.Millisecond)
@@ -62,4 +62,41 @@ func TestSingleFly(t *testing.T) {
 		}()
 	}
 	time.Sleep(1 * time.Second)
+}
+
+func TestGroup_Get(t *testing.T) {
+	g := NewGroup("scores", 2<<10, 50, 100, GetterFunc(
+		func(key string) ([]byte, bool) {
+			log.Println("[SlowDB] search key", key)
+			time.Sleep(100 * time.Millisecond)
+			if v, ok := db[key]; ok {
+				return []byte(v), true
+			}
+			return nil, false
+		}))
+	if v, ok := g.Get("kwj"); ok {
+		fmt.Println(v)
+	}
+	g.Get("kwj")
+	g.Get("kkk")
+	g.Get("kkk")
+}
+
+func TestGroup_GetTTL(t *testing.T) {
+	g := NewGroup("scores", 2<<10, 100, 200, GetterFunc(
+		func(key string) ([]byte, bool) {
+			log.Println("[SlowDB] search key", key)
+			time.Sleep(100 * time.Millisecond)
+			if v, ok := db[key]; ok {
+				return []byte(v), true
+			}
+			return nil, false
+		}))
+	if v, ok := g.Get("Tom"); ok {
+		fmt.Println(v)
+	}
+	for i := 0; i < 3; i++ {
+		time.Sleep(5 * time.Second)
+		g.Get("Tom")
+	}
 }

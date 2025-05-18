@@ -22,3 +22,10 @@ func cloneByte(b []byte) []byte {
 	copy(res, b)
 	return res
 }
+
+func (b ByteView) Empty() bool {
+	if b.Len() == 0 {
+		return true
+	}
+	return false
+}
